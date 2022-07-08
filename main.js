@@ -27,7 +27,7 @@ async function updateIpsFile() {
 async function addIpToFile(ip) {
 	if (!ips[ip]) {
 		ips[ip] = {
-			hits: 1,
+			hits: 0,
 			lastHit: Date.now()
 		}
 	}
