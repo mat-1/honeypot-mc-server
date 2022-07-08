@@ -41,7 +41,7 @@ function makePingResponse(response, client, answerToPing) {
 	const serverProtocol = server.mcversion.version
 	const serverVersion = server.mcversion.minecraftVersion
 	const clientProtocol = client.protocolVersion
-	log(`Ping from \`${client.socket.remoteAddress}\` (\`protocol v${clientProtocol}\`)`)
+	log(`Ping from \`${client.socket.remoteAddress}\` (protocol v${clientProtocol})`)
 
 	const pingResponse = {
 		version: {
