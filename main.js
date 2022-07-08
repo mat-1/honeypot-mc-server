@@ -14,46 +14,27 @@ const server = mc.createServer({
 })
 
 server.on('login', function(client) {
-	log(`Login from \`${client.socket.remoteAddress}\`\nUsername: **${client.username}**\nUUID: **${client.uuid}**\nProtocol: v**${client.protocolVersion}**`)
+	const ip = client.socket.remoteAddress
+	const ipName = ip_names[ip]
+	const previousJoins = ips[ip]?.joins || 0
+	const lastJoin = ips[ip]?.lastJoin
+
+	let message = ''
+	if (previousJoins === 0)
+		message += '**first join!** '
+	message += `Login from \`${ip}\``
+	if (ipName)
+		message += ` (${ipName})`
+	message += `\nUsername: **${client.username}**\nUUID: **${client.uuid}**\nProtocol: v${client.protocolVersion}`
+	log(message)
+	addIpJoinToFile(ip)
+
 	client.write('kick_disconnect', {
 		reason: JSON.stringify({text: 'Baited LUL https://discord.gg/5CKngMU6cZ'})
 	})
 })
 
 const ips = JSON.parse(fs.readFileSync('ips.json', 'utf8'))
-async function updateIpsFile() {
-	await fs.promises.writeFile('ips.json', JSON.stringify(ips, null, 2))
-}
-async function addIpToFile(ip) {
-	if (!ips[ip]) {
-		ips[ip] = {
-			hits: 0,
-			lastHit: Date.now()
-		}
-	}
-	ips[ip] = {
-		hits: ips[ip].hits + 1,
-		lastHit: Date.now()
-	}
-	await updateIpsFile()
-}
-
-async function log(body) {
-	// handle ratelimits
-	const r = await fetch(webhook_url, {
-		method: 'POST',
-		headers: {
-			'Content-Type': 'application/json'
-		},
-		body: JSON.stringify({content: body})
-	})
-	// if it was ratelimited, try again based on the header
-	if (r.status === 429) {
-		const retry = r.headers.get('x-ratelimit-reset-after')
-		await new Promise(resolve => setTimeout(resolve, retry * 1000))
-		await log(body)
-	}
-}
 
 function makePingResponse(response, client, answerToPing) {
 	const serverProtocol = server.mcversion.version
@@ -75,7 +56,7 @@ function makePingResponse(response, client, answerToPing) {
 	}
 	message += ')'
 	log(message)
-	addIpToFile(ip)
+	addIpPingToFile(ip)
 
 	const pingResponse = {
 		version: {
@@ -112,5 +93,53 @@ function makePingResponse(response, client, answerToPing) {
 	client.write('server_info', {
 		response: JSON.stringify(pingResponse)
 	})
+}
+
+async function updateIpsFile() {
+	await fs.promises.writeFile('ips.json', JSON.stringify(ips, null, 2))
+}
+async function log(body) {
+	// handle ratelimits
+	const r = await fetch(webhook_url, {
+		method: 'POST',
+		headers: {
+			'Content-Type': 'application/json'
+		},
+		body: JSON.stringify({content: body})
+	})
+	// if it was ratelimited, try again based on the header
+	if (r.status === 429) {
+		const retry = r.headers.get('x-ratelimit-reset-after')
+		await new Promise(resolve => setTimeout(resolve, retry * 1000))
+		await log(body)
+	}
+}
+
+
+async function addIpPingToFile(ip) {
+	if (!ips[ip]) {
+		ips[ip] = {
+			hits: 0,
+			joins: 0,
+			lastHit: null,
+			lastJoin: null
+		}
+	}
+	ips[ip].hits = ips[ip].hits + 1
+	ips[ip].lastHit = Date.now()
+	await updateIpsFile()
+}
+async function addIpJoinToFile(ip) {
+	if (!ips[ip]) {
+		ips[ip] = {
+			hits: 0,
+			joins: 0,
+			lastHit: null,
+			lastJoin: null
+		}
+	}
+	ips[ip].joins = ips[ip].joins + 1
+	ips[ip].lastJoin = Date.now()
+	await updateIpsFile()
 }
 
