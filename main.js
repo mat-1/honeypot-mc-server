@@ -71,7 +71,7 @@ function makePingResponse(response, client, answerToPing) {
 	message += `Ping from \`${ip}\` `
 	message += ipName ? `(${ipName}, protocol v${clientProtocol}` : `(protocol v${clientProtocol}`
 	if (previousHits > 0) {
-		message += ', #' + previousHits + 1
+		message += ', #' + (previousHits + 1)
 	}
 	message += ')'
 	log(message)
