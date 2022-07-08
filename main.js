@@ -9,7 +9,7 @@ const server = mc.createServer({
 	port: 25565,
 	version: '1.18.2',
 	beforePing: makePingResponse,
-	motd: 'Dream\'s recording server'
+	motd: 'Dream private recording server'
 	// validateChannelProtocol: false
 })
 
@@ -83,7 +83,7 @@ function makePingResponse(response, client, answerToPing) {
 			protocol: serverProtocol
 		},
 		players: {
-			max: 2147483647,
+			max: 32,
 			online: 4,
 			sample: [
 				{
