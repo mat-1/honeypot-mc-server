@@ -16,7 +16,7 @@ const server = mc.createServer({
 server.on('login', function(client) {
 	log(`Login from \`${client.socket.remoteAddress}\`\nUsername: **${client.username}**\nUUID: **${client.uuid}**\nProtocol: v**${client.protocolVersion}**`)
 	client.write('kick_disconnect', {
-		reason: JSON.stringify({text: 'Baited LUL'})
+		reason: JSON.stringify({text: 'Baited LUL https://discord.gg/5CKngMU6cZ'})
 	})
 })
 
