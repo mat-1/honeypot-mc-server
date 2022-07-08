@@ -1,6 +1,7 @@
 const { fetch } = require('undici')
 const mc = require('minecraft-protocol')
-const { webhook_url } = require('./config.json')
+const { webhook_url, ip_names } = require('./config.json')
+const fs = require('fs')
 const server = mc.createServer({
 	'online-mode': false,
 	encryption: true,
@@ -8,17 +9,34 @@ const server = mc.createServer({
 	port: 25565,
 	version: '1.18.2',
 	beforePing: makePingResponse,
-	motd: 'Dream recording server'
+	motd: 'Dream\'s recording server'
 	// validateChannelProtocol: false
 })
 
 server.on('login', function(client) {
-	log(`Login from \`${client.socket.remoteAddress}\`\nUsername: **${client.username}**\nUUID: **${client.uuid}**\nProtocol: **${client.protocolVersion}**`)
+	log(`Login from \`${client.socket.remoteAddress}\`\nUsername: **${client.username}**\nUUID: **${client.uuid}**\nProtocol: v**${client.protocolVersion}**`)
 	client.write('kick_disconnect', {
 		reason: JSON.stringify({text: 'Baited LUL'})
 	})
 })
 
+const ips = JSON.parse(fs.readFileSync('ips.json', 'utf8'))
+async function updateIpsFile() {
+	await fs.promises.writeFile('ips.json', JSON.stringify(ips, null, 2))
+}
+async function addIpToFile(ip) {
+	if (!ips[ip]) {
+		ips[ip] = {
+			hits: 1,
+			lastHit: Date.now()
+		}
+	}
+	ips[ip] = {
+		hits: ips[ip].hits + 1,
+		lastHit: Date.now()
+	}
+	await updateIpsFile()
+}
 
 async function log(body) {
 	// handle ratelimits
@@ -41,7 +59,23 @@ function makePingResponse(response, client, answerToPing) {
 	const serverProtocol = server.mcversion.version
 	const serverVersion = server.mcversion.minecraftVersion
 	const clientProtocol = client.protocolVersion
-	log(`Ping from \`${client.socket.remoteAddress}\` (protocol v${clientProtocol})`)
+	const ip = client.socket.remoteAddress
+
+	const ipName = ip_names[ip]
+	const previousHits = ips[ip]?.hits || 0
+	const lastHit = ips[ip]?.lastHit
+
+	let message = ''
+	if (previousHits === 0)
+		message += '**first ping!** '
+	message += `Ping from \`${ip}\` `
+	message += ipName ? `(${ipName}, protocol v${clientProtocol}` : `(protocol v${clientProtocol}`
+	if (previousHits > 0) {
+		message += ', #' + previousHits
+	}
+	message += ')'
+	log(message)
+	addIpToFile(ip)
 
 	const pingResponse = {
 		version: {
