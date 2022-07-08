@@ -60,7 +60,7 @@ function makePingResponse(response, client, answerToPing) {
 
 	const pingResponse = {
 		version: {
-			name: serverVersion,
+			name: 'Paper ' + serverVersion,
 			protocol: serverProtocol
 		},
 		players: {
