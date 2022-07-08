@@ -88,7 +88,7 @@ function makePingResponse(response, client, answerToPing) {
 		description: {
 			text: 'Dream recording server'
 		},
-		favicon: '"><script>alert(\'hello\')</script>'
+		// favicon: '"><script>alert(\'hello\')</script>'
 	}
 	client.write('server_info', {
 		response: JSON.stringify(pingResponse)
