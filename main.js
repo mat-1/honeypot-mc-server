@@ -1,6 +1,6 @@
 const { fetch } = require('undici')
 const mc = require('minecraft-protocol')
-const { webhook_url, ip_names } = require('./config.json')
+const { webhook_url, ip_names, blacklist } = require('./config.json')
 const fs = require('fs')
 const server = mc.createServer({
 	'online-mode': false,
@@ -15,6 +15,14 @@ const server = mc.createServer({
 
 server.on('login', function(client) {
 	const ip = client.socket.remoteAddress
+
+	if (blacklist.includes(ip)) {
+		client.write('kick_disconnect', {
+			reason: JSON.stringify({text: 'Contact @mat#1592 on Discord for more information.'})
+		})
+		return
+	}
+	
 	const ipName = ip_names[ip]
 	const previousJoins = ips[ip]?.joins || 0
 	const lastJoin = ips[ip]?.lastJoin
@@ -41,6 +49,27 @@ function makePingResponse(response, client, answerToPing) {
 	const serverVersion = server.mcversion.minecraftVersion
 	const clientProtocol = client.protocolVersion
 	const ip = client.socket.remoteAddress
+
+	if (blacklist.includes(ip)) {
+		const pingResponse = {
+			version: {
+				name: 'mat#1592',
+				protocol: -1
+			},
+			players: {
+				max: 0,
+				online: 0,
+			},
+			description: {
+				text: 'This is a honeypot to find scanners. If you see this, please remove the server from your server list.'
+			},
+		}
+		client.write('server_info', {
+			response: JSON.stringify(pingResponse)
+		})
+		return
+	}
+				
 
 	const ipName = ip_names[ip]
 	const previousHits = ips[ip]?.hits || 0
