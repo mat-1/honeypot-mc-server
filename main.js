@@ -48,7 +48,7 @@ function makePingResponse(response, client, answerToPing) {
 	const serverProtocol = server.mcversion.version
 	const serverVersion = server.mcversion.minecraftVersion
 	const clientProtocol = client.protocolVersion
-	const clientTargetHost = client.serverHost
+	const clientTargetHost = client.serverHost.replace(/@/g, ' @') // no @everyone abuse :)
 	const clientTargetPort = client.serverPort
 	const ip = client.socket.remoteAddress
 
