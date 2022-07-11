@@ -1,6 +1,6 @@
 const { fetch } = require('undici')
 const mc = require('minecraft-protocol')
-const { webhook_url, ip_names, blacklist } = require('./config.json')
+const { webhook_url, honeypot_ip, ip_names, blacklist } = require('./config.json')
 const fs = require('fs')
 const server = mc.createServer({
 	'online-mode': false,
@@ -13,16 +13,16 @@ const server = mc.createServer({
 	// validateChannelProtocol: false
 })
 
-server.on('login', function(client) {
+server.on('login', function (client) {
 	const ip = client.socket.remoteAddress
 
 	if (blacklist.includes(ip)) {
 		client.write('kick_disconnect', {
-			reason: JSON.stringify({text: 'Contact @mat#1592 on Discord for more information.'})
+			reason: JSON.stringify({ text: 'Contact @mat#1592 on Discord for more information.' })
 		})
 		return
 	}
-	
+
 	const ipName = ip_names[ip]
 	const previousJoins = ips[ip]?.joins || 0
 	const lastJoin = ips[ip]?.lastJoin
@@ -38,7 +38,7 @@ server.on('login', function(client) {
 	addIpJoinToFile(ip)
 
 	client.write('kick_disconnect', {
-		reason: JSON.stringify({text: 'Baited LUL https://discord.gg/5CKngMU6cZ'})
+		reason: JSON.stringify({ text: 'Baited LUL https://discord.gg/5CKngMU6cZ' })
 	})
 })
 
@@ -48,6 +48,8 @@ function makePingResponse(response, client, answerToPing) {
 	const serverProtocol = server.mcversion.version
 	const serverVersion = server.mcversion.minecraftVersion
 	const clientProtocol = client.protocolVersion
+	const clientTargetHost = client.serverHost
+	const clientTargetPort = client.serverPort
 	const ip = client.socket.remoteAddress
 
 	if (blacklist.includes(ip)) {
@@ -69,20 +71,25 @@ function makePingResponse(response, client, answerToPing) {
 		})
 		return
 	}
-				
+
 
 	const ipName = ip_names[ip]
 	const previousHits = ips[ip]?.hits || 0
 	const lastHit = ips[ip]?.lastHit
 
+
 	let message = ''
 	if (previousHits === 0)
 		message += '**first ping!** '
 	message += `Ping from \`${ip}\` `
-	message += ipName ? `(${ipName}, protocol v${clientProtocol}` : `(protocol v${clientProtocol}`
-	if (previousHits > 0) {
+	message += '('
+	if (ipName)
+		message += `${ipName}, `
+	message += `protocol: v${clientProtocol}`
+	if (clientTargetHost != honeypot_ip)
+		message += `, target: ${clientTargetHost}:${clientTargetPort}`
+	if (previousHits > 0)
 		message += ', #' + (previousHits + 1)
-	}
 	message += ')'
 	log(message)
 	addIpPingToFile(ip)
@@ -134,7 +141,7 @@ async function log(body) {
 		headers: {
 			'Content-Type': 'application/json'
 		},
-		body: JSON.stringify({content: body})
+		body: JSON.stringify({ content: body })
 	})
 	// if it was ratelimited, try again based on the header
 	if (r.status === 429) {
