@@ -14,6 +14,9 @@ const server = mc.createServer({
 })
 
 server.on('login', function (client) {
+	const mcData = require('minecraft-data')(server.version)
+	const loginPacket = mcData.loginPacket
+
 	const ip = client.socket.remoteAddress
 
 	if (blacklist.includes(ip)) {
@@ -27,18 +30,107 @@ server.on('login', function (client) {
 	const previousJoins = ips[ip]?.joins || 0
 	const lastJoin = ips[ip]?.lastJoin
 
-	let message = ''
-	if (previousJoins === 0)
-		message += '**first join!** '
-	message += `Login from \`${ip}\``
-	if (ipName)
-		message += ` (${ipName})`
-	message += `\nUsername: **${client.username}**\nUUID: **${client.uuid}**\nProtocol: v${client.protocolVersion}`
-	log(message)
 	addIpJoinToFile(ip)
 
-	client.write('kick_disconnect', {
-		reason: JSON.stringify({ text: 'Baited LUL https://discord.gg/5CKngMU6cZ' })
+	client.write('login', {
+		entityId: client.id,
+		isHardcore: false,
+		gameMode: 0,
+		previousGameMode: 1,
+		worldNames: loginPacket.worldNames,
+		dimensionCodec: loginPacket.dimensionCodec,
+		dimension: loginPacket.dimension,
+		worldName: 'minecraft:overworld',
+		hashedSeed: [0, 0],
+		maxPlayers: server.maxPlayers,
+		viewDistance: 10,
+		reducedDebugInfo: false,
+		enableRespawnScreen: true,
+		isDebug: false,
+		isFlat: false
+	})
+	client.write('position', {
+		x: 0,
+		y: 64,
+		z: 0,
+		yaw: 0,
+		pitch: 0,
+		flags: 0x00
+	})
+
+	let brand = null
+	let locale = null
+	let physics = false
+	let correctPhysics = false
+	let messages = []
+
+	const loginTime = Date.now()
+	let logoutTime = null
+
+	setTimeout(() => {
+		client.write('kick_disconnect', {
+			reason: JSON.stringify({ text: 'Baited LUL https://discord.gg/5CKngMU6cZ' })
+		})
+
+		let message = ''
+		if (previousJoins === 0)
+			message += '**first join!** '
+		message += `Login from \`${ip}\``
+		if (ipName)
+			message += ` (${ipName})`
+		message += `\nUsername: **${client.username}**`
+		message += `\nUUID: **${client.uuid}**`
+		message += `\nProtocol: v${client.protocolVersion}`
+		if (brand !== 'vanilla')
+			message += `\nBrand: ${brand}`
+		if (locale !== 'en_us')
+			message += `\nLocale: ${locale}`
+		if (!correctPhysics)
+			if (physics)
+				message += `\nPhysics: Incorrect`
+			else
+				message += `\nPhysics: None`
+		if (messages.length > 0)
+			if (messages.length === 1)
+				message += `\nMessage: ${messages[0].replace(/\n/g, ' ')}`
+			else
+				message += `\nMessages: ${messages.join(', ').replace(/\n/g, ' ')}`
+		if (logoutTime)
+			message += `\nLeft after: ${Math.round((logoutTime - loginTime) / 1000)}s`
+		log(message)
+	}, 15 * 1000)
+
+	const brandChannel = 'minecraft:brand'
+	client.registerChannel(brandChannel, ['string', []])
+	client.on(brandChannel, d => {
+		brand = d
+	})
+	client.on('position', p => {
+		if (p.y !== 64)
+			physics = true
+		if (p.y === 63.92159999847412)
+			correctPhysics = true
+	})
+	client.on('chat', msg => {
+		messages.push(msg.message)
+	})
+	client.on('settings', s => {
+		// there's other stuff but locale is the most interesting imo
+		// {
+		// 	locale: 'en_us',
+		// 	viewDistance: 12,
+		// 	chatFlags: 0,
+		// 	chatColors: true,
+		// 	skinParts: 127,
+		// 	mainHand: 1,
+		// 	enableTextFiltering: true,
+		// 	enableServerListing: true
+		// }
+		locale = s.locale
+	})
+	client.on('end', (r) => {
+		console.log(r)
+		logoutTime = Date.now()
 	})
 })
 
@@ -48,7 +140,7 @@ function makePingResponse(response, client, answerToPing) {
 	const serverProtocol = server.mcversion.version
 	const serverVersion = server.mcversion.minecraftVersion
 	const clientProtocol = client.protocolVersion
-	const clientTargetHost = client.serverHost.replace(/@/g, '@ ') // no @everyone abuse :)
+	const clientTargetHost = client.serverHost
 	const clientTargetPort = client.serverPort
 	const ip = client.socket.remoteAddress
 
@@ -135,16 +227,18 @@ async function updateIpsFile() {
 	await fs.promises.writeFile('ips.json', JSON.stringify(ips, null, 2))
 }
 async function log(body) {
+	console.log(body)
 	// handle ratelimits
 	const r = await fetch(webhook_url, {
 		method: 'POST',
 		headers: {
 			'Content-Type': 'application/json'
 		},
-		body: JSON.stringify({ content: body })
+		body: JSON.stringify({ content: body.replace(/@ /g, '@') }) // no @everyone abuse :)
 	})
 	// if it was ratelimited, try again based on the header
 	if (r.status === 429) {
+		console.log('Ratelimited, trying again')
 		const retry = r.headers.get('x-ratelimit-reset-after')
 		await new Promise(resolve => setTimeout(resolve, retry * 1000))
 		await log(body)
