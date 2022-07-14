@@ -234,7 +234,7 @@ async function log(body) {
 		headers: {
 			'Content-Type': 'application/json'
 		},
-		body: JSON.stringify({ content: body.replace(/@ /g, '@') }) // no @everyone abuse :)
+		body: JSON.stringify({ content: body.replace(/@/g, '@ ') }) // no @everyone abuse :)
 	})
 	// if it was ratelimited, try again based on the header
 	if (r.status === 429) {
