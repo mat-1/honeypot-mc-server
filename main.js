@@ -264,9 +264,10 @@ async function log(body) {
 async function updateSummary() {
 	const sortedIps = Object.entries(ips)
 		.filter(r => !blacklist.includes(r[0]))
-		.sort((a, b) => (Math.max(b[1].lastHit, b[1].lastJoin)) - (Math.max(a[1].lastHit, a[1].lastJoin)))
+		.sort((a, b) => (Math.max(a[1].lastHit || null, a[1].lastJoin || null) - Math.max(b[1].lastHit || null, b[1].lastJoin || null)))
+	console.log(sortedIps)
 	const summaryLines = []
-	for (const [ip, data] of sortedIps.slice(0, 40)) {
+	for (const [ip, data] of sortedIps.slice(sortedIps.length - 40)) {
 		const ipName = ip_names[ip]
 		const ipOrg = data.org
 
