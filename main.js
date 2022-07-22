@@ -296,8 +296,10 @@ async function getHostingName(ip) {
 			}
 		})
 		const json = await r.json()
+		console.log(json)
 		return json.data.privacy.service || json.data.company.name || null
 	} catch (e) {
+		console.error(e)
 		return null
 	}
 }
