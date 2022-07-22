@@ -1,6 +1,6 @@
 const { fetch } = require('undici')
 const mc = require('minecraft-protocol')
-const { webhook_url, honeypot_ip, ip_names, blacklist } = require('./config.json')
+const { webhook_url, summary_webhook_url, honeypot_ip, ip_names, blacklist, summary_message_id } = require('./config.json')
 const fs = require('fs')
 const server = mc.createServer({
 	'online-mode': false,
@@ -29,8 +29,6 @@ server.on('login', function (client) {
 	const ipName = ip_names[ip]
 	const previousJoins = ips[ip]?.joins || 0
 	const lastJoin = ips[ip]?.lastJoin
-
-	addIpJoinToFile(ip)
 
 	client.write('login', {
 		entityId: client.id,
@@ -75,13 +73,13 @@ server.on('login', function (client) {
 		let message = ''
 		if (previousJoins === 0)
 			message += '**first join!** '
-		message += `Login from [\`${ip}\`](<https://ipinfo.io/${ip}>)`
+		message += `Login from ${prettyIpMarkdown(ip)}`
 
 		const parts = []
 		if (ipName)
 			parts.push(ipName)
 		// the vpn, isp, or host
-		const hostingName = await getHostingName(ip)
+		const hostingName = ips[ip]?.org ?? await getHostingName(ip)
 		if (hostingName)
 			parts.push(hostingName)
 		if (parts.length > 0)
@@ -106,7 +104,9 @@ server.on('login', function (client) {
 				message += `\nMessages: ${messages.join(', ').replace(/\n/g, ' ')}`
 		if (logoutTime)
 			message += `\nLeft after: ${Math.round((logoutTime - loginTime) / 1000)}s`
+		addIpJoinToFile(ip, hostingName)
 		log(message)
+		updateSummary()
 	}, 15 * 1000)
 
 	const brandChannel = 'minecraft:brand'
@@ -182,13 +182,13 @@ async function makePingResponse(response, client, answerToPing) {
 	let message = ''
 	if (previousHits === 0)
 		message += '**first ping!** '
-	message += `Ping from [\`${ip}\`](<https://ipinfo.io/${ip}>) `
+	message += `Ping from ${prettyIpMarkdown(ip)} `
 	message += '('
 	if (ipName)
 		message += `${ipName}, `
 
 	// the vpn, isp, or host
-	const hostingName = await getHostingName(ip)
+	const hostingName = ips[ip]?.org ?? await getHostingName(ip)
 	if (hostingName)
 		message += `${hostingName}, `
 
@@ -199,7 +199,8 @@ async function makePingResponse(response, client, answerToPing) {
 		message += ', #' + (previousHits + 1)
 	message += ')'
 	log(message)
-	addIpPingToFile(ip)
+	addIpPingToFile(ip, hostingName)
+	updateSummary()
 
 	const pingResponse = {
 		version: {
@@ -260,8 +261,67 @@ async function log(body) {
 	}
 }
 
+async function updateSummary() {
+	const sortedIps = Object.entries(ips)
+		.filter(r => !blacklist.includes(r[0]))
+		.sort((a, b) => (Math.max(b[1].lastHit, b[1].lastJoin)) - (Math.max(a[1].lastHit, a[1].lastJoin)))
+	const summaryLines = []
+	for (const [ip, data] of sortedIps.slice(0, 40)) {
+		const ipName = ip_names[ip]
+		const ipOrg = data.org
 
-async function addIpPingToFile(ip) {
+		let message = ''
+		message += prettyIpMarkdown(ip)
+
+		{
+			const parts = []
+			if (ipName)
+				parts.push(ipName)
+			if (ipOrg)
+				parts.push(ipOrg)
+			if (parts.length > 0)
+				message += ` (${parts.join(', ')})`
+		}
+
+		{
+			const parts = []
+			if (data.lastHit)
+				parts.push(`Last ping: <t:${Math.floor(data.lastHit / 1000)}:R>`)
+			if (data.lastJoin)
+				parts.push(`Last join: <t:${Math.floor(data.lastJoin / 1000)}:R>`)
+			if (parts.length > 0)
+				message += ` ${parts.join(', ')}`
+		}
+
+		summaryLines.push(message)
+	}
+
+	// handle ratelimits
+	const r = await fetch(`${summary_webhook_url}/messages/${summary_message_id}`, {
+		method: 'PATCH',
+		headers: {
+			'Content-Type': 'application/json'
+		},
+		body: JSON.stringify({
+			embeds: [
+				{
+					title: 'Summary',
+					description: summaryLines.join('\n'),
+					footer: {
+						text: `${Object.keys(ips).length} unique IPs`
+					}
+				}]
+		})
+	})
+	if (r.status === 429) {
+		// if it was ratelimited, too bad, it'll get updated later
+	}
+
+}
+
+updateSummary()
+
+async function addIpPingToFile(ip, org) {
 	if (!ips[ip]) {
 		ips[ip] = {
 			hits: 0,
@@ -272,9 +332,11 @@ async function addIpPingToFile(ip) {
 	}
 	ips[ip].hits = ips[ip].hits + 1
 	ips[ip].lastHit = Date.now()
+	if (org)
+		ips[ip].org = org
 	await updateIpsFile()
 }
-async function addIpJoinToFile(ip) {
+async function addIpJoinToFile(ip, org) {
 	if (!ips[ip]) {
 		ips[ip] = {
 			hits: 0,
@@ -285,6 +347,8 @@ async function addIpJoinToFile(ip) {
 	}
 	ips[ip].joins = ips[ip].joins + 1
 	ips[ip].lastJoin = Date.now()
+	if (org)
+		ips[ip].org = org
 	await updateIpsFile()
 }
 
@@ -302,4 +366,8 @@ async function getHostingName(ip) {
 		console.error(e)
 		return null
 	}
+}
+
+function prettyIpMarkdown(ip) {
+	return `[\`${ip}\`](<https://ipinfo.io/${ip}>)`
 }
