@@ -67,7 +67,7 @@ server.on('login', function (client) {
 	const loginTime = Date.now()
 	let logoutTime = null
 
-	setTimeout(() => {
+	setTimeout(async () => {
 		client.write('kick_disconnect', {
 			reason: JSON.stringify({ text: 'Baited LUL https://discord.gg/5CKngMU6cZ' })
 		})
@@ -75,9 +75,18 @@ server.on('login', function (client) {
 		let message = ''
 		if (previousJoins === 0)
 			message += '**first join!** '
-		message += `Login from \`${ip}\``
+		message += `Login from [\`${ip}\`](<https://ipinfo.io/${ip}>)`
+
+		const parts = []
 		if (ipName)
-			message += ` (${ipName})`
+			parts.push(ipName)
+		// the vpn, isp, or host
+		const hostingName = await getHostingName(ip)
+		if (hostingName)
+			parts.push(hostingName)
+		if (parts.length > 0)
+			message += ` (${parts.join(', ')})`
+
 		message += `\nUsername: **${client.username}**`
 		message += `\nUUID: **${client.uuid}**`
 		message += `\nProtocol: v${client.protocolVersion}`
@@ -136,7 +145,7 @@ server.on('login', function (client) {
 
 const ips = JSON.parse(fs.readFileSync('ips.json', 'utf8'))
 
-function makePingResponse(response, client, answerToPing) {
+async function makePingResponse(response, client, answerToPing) {
 	const serverProtocol = server.mcversion.version
 	const serverVersion = server.mcversion.minecraftVersion
 	const clientProtocol = client.protocolVersion
@@ -173,10 +182,16 @@ function makePingResponse(response, client, answerToPing) {
 	let message = ''
 	if (previousHits === 0)
 		message += '**first ping!** '
-	message += `Ping from \`${ip}\` `
+	message += `Ping from [\`${ip}\`](<https://ipinfo.io/${ip}>) `
 	message += '('
 	if (ipName)
 		message += `${ipName}, `
+
+	// the vpn, isp, or host
+	const hostingName = await getHostingName(ip)
+	if (hostingName)
+		message += `${hostingName}, `
+
 	message += `protocol: v${clientProtocol}`
 	if (clientTargetHost != honeypot_ip)
 		message += `, target: ${clientTargetHost}:${clientTargetPort}`
@@ -273,3 +288,16 @@ async function addIpJoinToFile(ip) {
 	await updateIpsFile()
 }
 
+async function getHostingName(ip) {
+	try {
+		const r = await fetch(`https://ipinfo.io/widget/demo/${ip}`, {
+			headers: {
+				Referer: 'https://ipinfo.io/'
+			}
+		})
+		const json = await r.json()
+		return json.data.privacy.service || json.data.company.name || null
+	} catch (e) {
+		return null
+	}
+}
