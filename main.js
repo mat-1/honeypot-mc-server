@@ -267,7 +267,7 @@ async function updateSummary() {
 		.sort((a, b) => (Math.max(a[1].lastHit || null, a[1].lastJoin || null) - Math.max(b[1].lastHit || null, b[1].lastJoin || null)))
 	console.log(sortedIps)
 	const summaryLines = []
-	for (const [ip, data] of sortedIps.slice(sortedIps.length - 40)) {
+	for (const [ip, data] of sortedIps.slice(sortedIps.length - 35)) {
 		const ipName = ip_names[ip]
 		const ipOrg = data.org
 
@@ -297,6 +297,8 @@ async function updateSummary() {
 		summaryLines.push(message)
 	}
 
+	const description = summaryLines.join('\n')
+	console.log('Editing,', description.length, 'chars')
 	// handle ratelimits
 	const r = await fetch(`${summary_webhook_url}/messages/${summary_message_id}`, {
 		method: 'PATCH',
@@ -307,7 +309,7 @@ async function updateSummary() {
 			embeds: [
 				{
 					title: 'Summary',
-					description: summaryLines.join('\n'),
+					description,
 					footer: {
 						text: `${Object.keys(ips).length} unique IPs`
 					}
