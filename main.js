@@ -362,7 +362,10 @@ async function getHostingName(ip) {
 		})
 		const json = await r.json()
 		console.log(json)
-		return json.data.privacy.service || json.data.company.name || null
+		let host = json.data.privacy.service || json.data.company.name || null
+		if (host)
+			host = host.split('-')[0]
+		return host
 	} catch (e) {
 		console.error(e)
 		return null
