@@ -369,7 +369,7 @@ async function getHostingName(ip) {
 		console.log(json)
 		let host = json.data.privacy.service || json.data.company.name || null
 		if (host)
-			host = host.split('-')[0]
+			host = host.split('-')[0].trim()
 		return host
 	} catch (e) {
 		console.error(e)
