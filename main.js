@@ -156,7 +156,7 @@ async function makePingResponse(response, client, answerToPing) {
 	const ip = client.socket.remoteAddress
 
 	if (blacklist.includes(ip) || (
-		serverVersion === 'mipsmc' && ip !== config.ip
+		clientTargetHost === 'mipsmc' && ip !== config.ip
 	)) {
 		const pingResponse = {
 			version: {
