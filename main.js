@@ -11,7 +11,7 @@ const server = mc.createServer({
 	port: CONFIG.port || 25565,
 	version: '1.18.2',
 	beforePing: makePingResponse,
-	motd: 'Dream private recording server'
+	motd: 'Dream recording server'
 	// validateChannelProtocol: false
 })
 
