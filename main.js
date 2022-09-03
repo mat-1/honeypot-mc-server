@@ -156,7 +156,7 @@ async function makePingResponse(response, client, answerToPing) {
 	const ip = client.socket.remoteAddress
 
 	if (blacklist.includes(ip) || (
-		clientTargetHost === 'mipsmc' && ip !== CONFIG.honeypot_ip
+		clientTargetHost === 'mat' && ip !== CONFIG.honeypot_ip
 	)) {
 		const pingResponse = {
 			version: {
