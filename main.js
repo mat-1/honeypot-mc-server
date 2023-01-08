@@ -104,8 +104,13 @@ server.on('login', function (client) {
 				message += `\nMessage: ${messages[0].replace(/\n/g, ' ')}`
 			else
 				message += `\nMessages: ${messages.join(', ').replace(/\n/g, ' ')}`
-		if (logoutTime)
-			message += `\nLeft after: ${Math.round((logoutTime - loginTime) / 1000)}s`
+		if (logoutTime) {
+			const leftAfterMilliseconds = Math.round(logoutTime - loginTime)
+			if (leftAfterMilliseconds > 2000)
+				message += `\nLeft after: ${Math.round(leftAfterMilliseconds / 1000)}s`
+			else
+				message += `\nLeft after: ${leftAfterMilliseconds}ms`
+		}
 		addIpJoinToFile(ip, hostingName)
 		log(message)
 		updateSummary()
