@@ -3,6 +3,7 @@ const mc = require('minecraft-protocol')
 const { webhook_url, summary_webhook_url, honeypot_ip, ip_names, blacklist, summary_message_id } = require('./config.json')
 const CONFIG = require('./config.json')
 const fs = require('fs')
+const P0fClient = require('p0f-client')
 
 const server = mc.createServer({
 	'online-mode': false,
@@ -14,6 +15,9 @@ const server = mc.createServer({
 	motd: 'Dream recording server'
 	// validateChannelProtocol: false
 })
+
+const p0f = new P0fClient('/tmp/p0f-socket')
+p0f.connect()
 
 server.on('login', function (client) {
 	const mcData = require('minecraft-data')(server.version)
@@ -72,6 +76,9 @@ server.on('login', function (client) {
 			reason: JSON.stringify({ text: 'Baited LUL https://discord.gg/5CKngMU6cZ' })
 		})
 
+		const p0fResponse = await p0f.query(ip)
+		console.log(p0fResponse)
+
 		let message = ''
 		if (previousJoins === 0)
 			message += '**first join!** '
@@ -110,6 +117,18 @@ server.on('login', function (client) {
 				message += `\nLeft after: ${Math.round(leftAfterMilliseconds / 1000)}s`
 			else
 				message += `\nLeft after: ${leftAfterMilliseconds}ms`
+		}
+		if (p0fResponse) {
+			let fingerprint = p0fResponse.osName ? `${p0fResponse.osName}` : 'Unknown OS'
+			if (p0fResponse.osFlavor)
+				fingerprint += ` ${p0fResponse.osFlavor}`
+			if (p0fResponse.linkType)
+				fingerprint += `, link type: ${p0fResponse.linkType}`
+			if (p0fResponse.uptimeMin) {
+				fingerprint += `, uptime ${prettyMinutes(p0fResponse.uptimeMin)}`
+				if (p0fResponse.upModDays) fingerprint += ` % ${p0fResponse.upModDays} days`
+			}
+			message += `\nFingerprint: ${fingerprint}`
 		}
 		addIpJoinToFile(ip, hostingName)
 		log(message)
@@ -182,6 +201,9 @@ async function makePingResponse(response, client, answerToPing) {
 		return
 	}
 
+	const p0fResponse = await p0f.query(ip)
+	console.log(p0fResponse)
+
 
 	const ipName = ip_names[ip]
 	const previousHits = ips[ip]?.hits || 0
@@ -204,6 +226,18 @@ async function makePingResponse(response, client, answerToPing) {
 	message += `protocol: v${clientProtocol}`
 	if (clientTargetHost != honeypot_ip)
 		message += `, target: ${clientTargetHost}:${clientTargetPort}`
+	if (p0fResponse) {
+		let fingerprint = p0fResponse.osName ? `${p0fResponse.osName}` : 'Unknown OS'
+		if (p0fResponse.osFlavor)
+			fingerprint += ` ${p0fResponse.osFlavor}`
+		if (p0fResponse.linkType)
+			fingerprint += `, link type: ${p0fResponse.linkType}`
+		if (p0fResponse.uptimeMin) {
+			fingerprint += `, uptime ${prettyMinutes(p0fResponse.uptimeMin)}`
+			if (p0fResponse.upModDays) fingerprint += ` % ${p0fResponse.upModDays} days`
+		}
+		message += `, fingerprint: ${fingerprint}`
+	}
 	if (previousHits > 0)
 		message += ', #' + (previousHits + 1)
 	message += ')'
@@ -275,7 +309,6 @@ async function updateSummary() {
 	const sortedIps = Object.entries(ips)
 		.filter(r => !blacklist.includes(r[0]))
 		.sort((a, b) => (Math.max(a[1].lastHit || null, a[1].lastJoin || null) - Math.max(b[1].lastHit || null, b[1].lastJoin || null)))
-	console.log(sortedIps)
 	const summaryLines = []
 	for (const [ip, data] of sortedIps.slice(sortedIps.length - 35)) {
 		const ipName = ip_names[ip]
@@ -373,7 +406,6 @@ async function getHostingName(ip) {
 			}
 		})
 		const json = await r.json()
-		console.log(json)
 		let host = json.data.privacy.service || json.data.company.name || null
 		if (host)
 			host = host.split('-')[0].trim()
@@ -386,4 +418,12 @@ async function getHostingName(ip) {
 
 function prettyIpMarkdown(ip) {
 	return `[\`${ip}\`](<https://ipinfo.io/${ip}>)`
+}
+
+function prettyMinutes(minutes) {
+	if (minutes >= 1440) {
+		return (minutes / 1440).toFixed(2) + ' days'
+	} else {
+		return minutes + ' minutes'
+	}
 }
