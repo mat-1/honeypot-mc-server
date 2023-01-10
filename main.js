@@ -16,8 +16,14 @@ const server = mc.createServer({
 	// validateChannelProtocol: false
 })
 
-const p0f = new P0fClient('/tmp/p0f-socket')
-p0f.connect()
+let p0f
+startP0f()
+
+async function startP0f() {
+	p0f = new P0fClient('/tmp/p0f-socket')
+	await p0f.connect()
+	p0f._socket.on('end', () => startP0f() )
+}
 
 server.on('login', function (client) {
 	const mcData = require('minecraft-data')(server.version)
@@ -76,7 +82,13 @@ server.on('login', function (client) {
 			reason: JSON.stringify({ text: 'Baited LUL https://discord.gg/5CKngMU6cZ' })
 		})
 
-		const p0fResponse = await p0f.query(ip)
+		let p0fResponse
+		try {
+			p0fResponse = await p0f.query(ip)
+		} catch (e) {
+			console.error(e)
+			p0fResponse = null
+		}
 		console.log(p0fResponse)
 
 		let message = ''
@@ -201,7 +213,13 @@ async function makePingResponse(response, client, answerToPing) {
 		return
 	}
 
-	const p0fResponse = await p0f.query(ip)
+	let p0fResponse
+	try {
+		p0fResponse = await p0f.query(ip)
+	} catch (e) {
+		console.error(e)
+		p0fResponse = null
+	}
 	console.log(p0fResponse)
 
 
