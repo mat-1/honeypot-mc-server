@@ -3,7 +3,7 @@ const mc = require('minecraft-protocol')
 const { webhook_url, summary_webhook_url, honeypot_ip, ip_names, blacklist, summary_message_id } = require('./config.json')
 const CONFIG = require('./config.json')
 const fs = require('fs')
-const P0fClient = require('p0f-client')
+const P0fClient = require('./p0f-client')
 
 const server = mc.createServer({
 	'online-mode': false,
