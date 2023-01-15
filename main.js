@@ -132,7 +132,7 @@ server.on('login', function (client) {
 		}
 		if (p0fResponse) {
 			const fingerprint = makeFingerprintMessage(p0fResponse)
-			
+
 			message += `\nFingerprint: ${fingerprint}`
 		}
 		addIpJoinToFile(ip, hostingName)
@@ -428,13 +428,13 @@ function makeFingerprintMessage(p0fResponse) {
 	let fingerprint = ''
 
 	if (p0fResponse.osName && p0fResponse.appName) {
-		fingerprint += p0fResponse.osName + p0fResponse.osFlavor ? ` ${p0fResponse.osFlavor}` : ''
+		fingerprint += p0fResponse.osName + (p0fResponse.osFlavor ? ` ${p0fResponse.osFlavor}` : '')
 		fingerprint += ' & '
-		fingerprint += p0fResponse.appName + p0fResponse.appFlavor ? ` ${p0fResponse.appFlavor}` : ''
+		fingerprint += p0fResponse.appName + (p0fResponse.appFlavor ? ` ${p0fResponse.appFlavor}` : '')
 	} else if (p0fResponse.osName)
-		fingerprint += p0fResponse.osName + p0fResponse.osFlavor ? ` ${p0fResponse.osFlavor}` : ''
+		fingerprint += p0fResponse.osName + (p0fResponse.osFlavor ? ` ${p0fResponse.osFlavor}` : '')
 	else if (p0fResponse.appName)
-		fingerprint += p0fResponse.appName + p0fResponse.appFlavor ? ` ${p0fResponse.appFlavor}` : ''
+		fingerprint += p0fResponse.appName + (p0fResponse.appFlavor ? ` ${p0fResponse.appFlavor}` : '')
 	else
 		fingerprint += 'Unknown OS'
 
