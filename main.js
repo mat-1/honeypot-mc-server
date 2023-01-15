@@ -22,7 +22,7 @@ startP0f()
 async function startP0f() {
 	p0f = new P0fClient('/tmp/p0f-socket')
 	await p0f.connect()
-	p0f._socket.on('end', () => startP0f() )
+	p0f._socket.on('end', () => startP0f())
 }
 
 server.on('login', function (client) {
@@ -131,15 +131,8 @@ server.on('login', function (client) {
 				message += `\nLeft after: ${leftAfterMilliseconds}ms`
 		}
 		if (p0fResponse) {
-			let fingerprint = p0fResponse.osName ? `${p0fResponse.osName}` : 'Unknown OS'
-			if (p0fResponse.osFlavor)
-				fingerprint += ` ${p0fResponse.osFlavor}`
-			if (p0fResponse.linkType)
-				fingerprint += `, link type: ${p0fResponse.linkType}`
-			if (p0fResponse.uptimeMin) {
-				fingerprint += `, uptime ${prettyMinutes(p0fResponse.uptimeMin)}`
-				if (p0fResponse.upModDays) fingerprint += ` % ${p0fResponse.upModDays} days`
-			}
+			const fingerprint = makeFingerprintMessage(p0fResponse)
+			
 			message += `\nFingerprint: ${fingerprint}`
 		}
 		addIpJoinToFile(ip, hostingName)
@@ -245,15 +238,8 @@ async function makePingResponse(response, client, answerToPing) {
 	if (clientTargetHost != honeypot_ip)
 		message += `, target: ${clientTargetHost}:${clientTargetPort}`
 	if (p0fResponse) {
-		let fingerprint = p0fResponse.osName ? `${p0fResponse.osName}` : 'Unknown OS'
-		if (p0fResponse.osFlavor)
-			fingerprint += ` ${p0fResponse.osFlavor}`
-		if (p0fResponse.linkType)
-			fingerprint += `, link type: ${p0fResponse.linkType}`
-		if (p0fResponse.uptimeMin) {
-			fingerprint += `, uptime ${prettyMinutes(p0fResponse.uptimeMin)}`
-			if (p0fResponse.upModDays) fingerprint += ` % ${p0fResponse.upModDays} days`
-		}
+		const fingerprint = makeFingerprintMessage(p0fResponse)
+
 		message += `, fingerprint: ${fingerprint}`
 	}
 	if (previousHits > 0)
@@ -436,6 +422,30 @@ async function getHostingName(ip) {
 
 function prettyIpMarkdown(ip) {
 	return `[\`${ip}\`](<https://ipinfo.io/${ip}>)`
+}
+
+function makeFingerprintMessage(p0fResponse) {
+	let fingerprint = ''
+
+	if (p0fResponse.osName && p0fResponse.appName) {
+		fingerprint += p0fResponse.osName + p0fResponse.osFlavor ? ` ${p0fResponse.osFlavor}` : ''
+		fingerprint += ' & '
+		fingerprint += p0fResponse.appName + p0fResponse.appFlavor ? ` ${p0fResponse.appFlavor}` : ''
+	} else if (p0fResponse.osName)
+		fingerprint += p0fResponse.osName + p0fResponse.osFlavor ? ` ${p0fResponse.osFlavor}` : ''
+	else if (p0fResponse.appName)
+		fingerprint += p0fResponse.appName + p0fResponse.appFlavor ? ` ${p0fResponse.appFlavor}` : ''
+	else
+		fingerprint += 'Unknown OS'
+
+	if (p0fResponse.linkType)
+		fingerprint += `, link type: ${p0fResponse.linkType}`
+	if (p0fResponse.uptimeMin) {
+		fingerprint += `, uptime ${prettyMinutes(p0fResponse.uptimeMin)}`
+		if (p0fResponse.upModDays) fingerprint += ` % ${p0fResponse.upModDays} days`
+	}
+
+	return fingerprint
 }
 
 function prettyMinutes(minutes) {
