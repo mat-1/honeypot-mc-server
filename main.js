@@ -174,7 +174,12 @@ server.on('login', function (client) {
 	})
 })
 
-const ips = JSON.parse(fs.readFileSync('ips.json', 'utf8'))
+let ips
+try {
+	ips = JSON.parse(fs.readFileSync('ips.json', 'utf8'))
+} catch {
+	ips = JSON.parse(fs.readFileSync('ips.json.save', 'utf8'))
+}
 
 async function makePingResponse(response, client, answerToPing) {
 	const serverProtocol = server.mcversion.version
