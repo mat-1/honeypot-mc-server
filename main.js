@@ -445,10 +445,6 @@ function makeFingerprintMessage(p0fResponse) {
 
 	if (p0fResponse.linkType)
 		fingerprint += `, link type: ${p0fResponse.linkType}`
-	if (p0fResponse.uptimeMin) {
-		fingerprint += `, uptime ${prettyMinutes(p0fResponse.uptimeMin)}`
-		if (p0fResponse.upModDays) fingerprint += ` % ${p0fResponse.upModDays} days`
-	}
 
 	return fingerprint
 }
