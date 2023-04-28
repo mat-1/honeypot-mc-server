@@ -184,11 +184,13 @@ try {
 function escapeText(text) {
 	return text
 		.replace(/\n/g, '\\n')
-		.replace(/:\/\//, ':​//')
+		.replace(/:\/\//g, ':​//')
 		.replace(/_/g, '\\_')
 		.replace(/\*/g, '\\*')
 		.replace(/`/g, '\\`')
 		.replace(/\|/g, '\\|')
+		.replace(/.gg\//gi, '.gg​/')
+		.replace(/\/invite\/\//gi, '​/invite/')
 }
 
 async function makePingResponse(response, client, answerToPing) {
