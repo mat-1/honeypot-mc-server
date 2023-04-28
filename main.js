@@ -10,7 +10,7 @@ const server = mc.createServer({
 	encryption: true,
 	host: '0.0.0.0',
 	port: CONFIG.port || 25565,
-	version: '1.18.2',
+	version: '1.19.3',
 	beforePing: makePingResponse,
 	motd: 'Dream recording server'
 	// validateChannelProtocol: false
