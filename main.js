@@ -106,13 +106,13 @@ server.on('login', function (client) {
 		if (parts.length > 0)
 			message += ` (${parts.join(', ')})`
 
-		message += `\nUsername: **${client.username}**`
-		message += `\nUUID: **${client.uuid}**`
+		message += `\nUsername: **${escapeText(client.username)}**`
+		// message += `\nUUID: **${client.uuid}**`
 		message += `\nProtocol: v${client.protocolVersion}`
 		if (brand !== 'vanilla')
-			message += `\nBrand: ${brand}`
+			message += `\nBrand: ${escapeText(brand)}`
 		if (locale !== 'en_us')
-			message += `\nLocale: ${locale}`
+			message += `\nLocale: ${escapeText(locale)}`
 		if (!correctPhysics)
 			if (physics)
 				message += `\nPhysics: Incorrect`
@@ -120,9 +120,9 @@ server.on('login', function (client) {
 				message += `\nPhysics: None`
 		if (messages.length > 0)
 			if (messages.length === 1)
-				message += `\nMessage: ${messages[0].replace(/\n/g, ' ')}`
+				message += `\nMessage: ${escapeText(messages[0])}`
 			else
-				message += `\nMessages: ${messages.join(', ').replace(/\n/g, ' ')}`
+				message += `\nMessages: ${messages.map(escapeText).join(', ')}`
 		if (logoutTime) {
 			const leftAfterMilliseconds = Math.round(logoutTime - loginTime)
 			if (leftAfterMilliseconds > 2000)
@@ -179,6 +179,16 @@ try {
 	ips = JSON.parse(fs.readFileSync('ips.json', 'utf8'))
 } catch {
 	ips = JSON.parse(fs.readFileSync('ips.json.save', 'utf8'))
+}
+
+function escapeText(text) {
+	return text
+		.replace(/\n/g, '\\n')
+		.replace(/:\/\//, ':​//')
+		.replace(/_/g, '\\_')
+		.replace(/\*/g, '\\*')
+		.replace(/`/g, '\\`')
+		.replace(/\|/g, '\\|')
 }
 
 async function makePingResponse(response, client, answerToPing) {
@@ -241,7 +251,7 @@ async function makePingResponse(response, client, answerToPing) {
 
 	message += `protocol: v${clientProtocol}`
 	if (clientTargetHost != honeypot_ip)
-		message += `, target: ${clientTargetHost.replace(/\n/g, '\\n').replace(/:\/\//, ':​//')}:${clientTargetPort}`
+		message += `, target: ${escapeText(clientTargetHost)}:${clientTargetPort}`
 	if (p0fResponse) {
 		const fingerprint = makeFingerprintMessage(p0fResponse)
 
