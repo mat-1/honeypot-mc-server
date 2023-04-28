@@ -241,7 +241,7 @@ async function makePingResponse(response, client, answerToPing) {
 
 	message += `protocol: v${clientProtocol}`
 	if (clientTargetHost != honeypot_ip)
-		message += `, target: ${clientTargetHost}:${clientTargetPort}`
+		message += `, target: ${clientTargetHost.replace(/\n/g, '\\n').replace(/:\/\//, ':​//')}:${clientTargetPort}`
 	if (p0fResponse) {
 		const fingerprint = makeFingerprintMessage(p0fResponse)
 
@@ -303,7 +303,7 @@ async function log(body) {
 		headers: {
 			'Content-Type': 'application/json'
 		},
-		body: JSON.stringify({ content: body.replace(/@/g, '@ ') }) // no @everyone abuse :)
+		body: JSON.stringify({ content: body.replace(/@/g, '@​') }) // no @everyone abuse :)
 	})
 	// if it was ratelimited, try again based on the header
 	if (r.status === 429) {

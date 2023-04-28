@@ -1,4 +1,6 @@
 node_modules
 config.json
 ips.json
+*.save
+*.swp
 
