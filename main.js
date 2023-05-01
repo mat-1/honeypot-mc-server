@@ -49,11 +49,12 @@ server.on('login', function (client) {
 		previousGameMode: 1,
 		worldNames: loginPacket.worldNames,
 		dimensionCodec: loginPacket.dimensionCodec,
-		dimension: loginPacket.dimension,
+		worldType: loginPacket.worldType,
 		worldName: 'minecraft:overworld',
 		hashedSeed: [0, 0],
 		maxPlayers: server.maxPlayers,
 		viewDistance: 10,
+		simulationDistance: 10,
 		reducedDebugInfo: false,
 		enableRespawnScreen: true,
 		isDebug: false,
@@ -319,8 +320,8 @@ async function log(body) {
 	})
 	// if it was ratelimited, try again based on the header
 	if (r.status === 429) {
-		console.log('Ratelimited, trying again')
 		const retry = r.headers.get('x-ratelimit-reset-after')
+		console.log('Ratelimited, trying again in', retry)
 		await new Promise(resolve => setTimeout(resolve, retry * 1000))
 		await log(body)
 	}
