@@ -12,8 +12,14 @@ const server = mc.createServer({
 	port: CONFIG.port || 25565,
 	version: '1.19.3',
 	beforePing: makePingResponse,
-	motd: 'Dream recording server'
+	motd: 'Dream recording server',
+	enforceSecureProfile: false
 	// validateChannelProtocol: false
+})
+
+server.on('connection', (client) => {
+	client.remoteAddress = client.socket.remoteAddress
+	client.remotePort = client.socket.remotePort
 })
 
 let p0f
@@ -25,11 +31,11 @@ async function startP0f() {
 	p0f._socket.on('end', () => startP0f())
 }
 
-server.on('login', function (client) {
+server.on('login', (client) => {
 	const mcData = require('minecraft-data')(server.version)
 	const loginPacket = mcData.loginPacket
 
-	const ip = client.socket.remoteAddress
+	const ip = client.remoteAddress
 
 	if (blacklist.includes(ip)) {
 		client.write('kick_disconnect', {
@@ -200,7 +206,8 @@ async function makePingResponse(response, client, answerToPing) {
 	const clientProtocol = client.protocolVersion
 	const clientTargetHost = client.serverHost
 	const clientTargetPort = client.serverPort
-	const ip = client.socket.remoteAddress
+	const ip = client.remoteAddress
+	const port = client.remotePort
 
 	if (blacklist.includes(ip) || (
 		clientTargetHost === 'mat' && ip !== CONFIG.honeypot_ip
@@ -242,7 +249,7 @@ async function makePingResponse(response, client, answerToPing) {
 	let message = ''
 	if (previousHits === 0)
 		message += '**first ping!** '
-	message += `Ping from ${prettyIpMarkdown(ip)} `
+	message += `Ping from ${prettyIpMarkdown(ip, port)} `
 	message += '('
 	if (ipName)
 		message += `${ipName}, `
@@ -438,8 +445,12 @@ async function getHostingName(ip) {
 	}
 }
 
-function prettyIpMarkdown(ip) {
-	return `[\`${ip}\`](<https://ipinfo.io/${ip}>)`
+function prettyIpMarkdown(ip, port) {
+	if (port)
+		return `[\`${ip}:${port}\`](<https://ipinfo.io/${ip}>)`
+	else
+		return `[\`${ip}\`](<https://ipinfo.io/${ip}>)`
+
 }
 
 function makeFingerprintMessage(p0fResponse) {
