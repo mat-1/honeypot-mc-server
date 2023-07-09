@@ -189,6 +189,7 @@ try {
 }
 
 function escapeText(text) {
+	if (!text) return ''
 	return text
 		.replace(/\n/g, '\\n')
 		.replace(/:\/\//g, ':​//')
