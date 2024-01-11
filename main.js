@@ -185,7 +185,7 @@ let ips
 try {
 	ips = JSON.parse(fs.readFileSync('ips.json', 'utf8'))
 } catch {
-	ips = JSON.parse(fs.readFileSync('ips.json.save', 'utf8'))
+	ips = JSON.parse(fs.readFileSync('ips.json.bak', 'utf8'))
 }
 
 function escapeText(text) {
@@ -313,8 +313,8 @@ async function makePingResponse(response, client, answerToPing) {
 }
 
 async function updateIpsFile() {
-	await fs.promises.writeFile('ips.json.save', JSON.stringify(ips, null, 2))
-	await fs.promises.writeFile('ips.json', JSON.stringify(ips, null, 2))
+	await fs.promises.writeFile('ips.json.bak', JSON.stringify(ips, null, 2))
+	await fs.promises.rename('ips.json.bak', 'ips.json')
 }
 async function log(body) {
 	console.log(body)
